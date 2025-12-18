@@ -21,12 +21,14 @@ class HybridDRModel(nn.Module):
         
         # 3. Transformer Encoder
         # We flatten the spatial dimensions (H*W) to be the sequence length
-        encoder_layer = nn.TransformerEncoderLayer(d_model=self.embed_dim, nhead=8, batch_first=True)
+        # Dropout increased from default 0.1 to 0.2 for regularization
+        encoder_layer = nn.TransformerEncoderLayer(d_model=self.embed_dim, nhead=8, batch_first=True, dropout=0.2)
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=2)
         
         # 4. Classification Head
         self.avg_pool = nn.AdaptiveAvgPool1d(1)
         self.fc = nn.Linear(self.embed_dim, num_classes)
+        self.dropout_fc = nn.Dropout(0.2) # Extra dropout before classification
         
     def forward(self, x):
         # x: [Batch, 3, 512, 512]
@@ -50,6 +52,19 @@ class HybridDRModel(nn.Module):
         x = self.avg_pool(x).squeeze(-1) # [Batch, 512]
         
         # Classification
+        x = self.dropout_fc(x)
         x = self.fc(x) # [Batch, Num_Classes]
         
         return x
+
+    def freeze_backbone(self):
+        """Freeze the ResNet backbone layers"""
+        print("Freezing ResNet backbone layers...")
+        for param in self.backbone.parameters():
+            param.requires_grad = False
+            
+    def unfreeze_backbone(self):
+        """Unfreeze the ResNet backbone layers"""
+        print("Unfreezing ResNet backbone layers...")
+        for param in self.backbone.parameters():
+            param.requires_grad = True

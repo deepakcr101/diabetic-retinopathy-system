@@ -8,19 +8,26 @@ import cv2
 from src.preprocess_utils import crop_image_from_gray, apply_clahe
 
 class IDRiDDataset(Dataset):
-    def __init__(self, root_dir, csv_file, transform=None, phase='train'):
+    def __init__(self, images_dir, labels_df, transform=None, phase='train'):
         """
         Args:
-            root_dir (string): Directory with all the images.
-            csv_file (string): Path to the csv file with annotations.
+            images_dir (string): Directory with all the images.
+            labels_df (pd.DataFrame or string): DataFrame or path to csv file with annotations.
             transform (callable, optional): Optional transform to be applied on a sample.
             phase (string): 'train' or 'test'.
         """
-        self.root_dir = root_dir
-        self.labels_df = pd.read_csv(csv_file)
+        self.root_dir = images_dir
         self.transform = transform
         self.phase = phase
         
+        # Determine if input is a path or a dataframe
+        if isinstance(labels_df, str):
+            self.labels_df = pd.read_csv(labels_df)
+        elif isinstance(labels_df, pd.DataFrame):
+            self.labels_df = labels_df
+        else:
+            raise ValueError("labels_df must be a path to a CSV or a pandas DataFrame")
+            
         # Ensure 'Image name' column exists (handle potential whitespace)
         self.labels_df.columns = [c.strip() for c in self.labels_df.columns]
         
